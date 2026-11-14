@@ -258,10 +258,15 @@ function round(x,d){const p=Math.pow(10,d||0);return Math.round(x*p)/p;}
 
 // Turns sheet rows into clean drill records; a group is identified by its device, labelled by its name.
 function normalize(rows){
+  // The sheet keeps every upload. Keep only the latest upload of each group name from each device, per day,
+  // so a corrected week replaces the earlier one here without deleting anything in the sheet.
+  const latest={},kid=r=>String(r.device_id||"")+"|"+String(r.group||"").trim().toLowerCase()+"|"+dayKey(r.uploaded_at);
+  rows.forEach(r=>{const k=kid(r),t=String(r.uploaded_at||"");if(!(k in latest)||t>latest[k])latest[k]=t;});
+  rows=rows.filter(r=>String(r.uploaded_at||"")===latest[kid(r)]);
   const labels={},used={};
   const out=[];
   rows.forEach(r=>{
-    const dev=String(r.device_id||r.group||"");
+    const dev=String(r.device_id||"")+"|"+String(r.group||"").trim().toLowerCase()+"|"+dayKey(r.uploaded_at);
     if(!(dev in labels)){
       let base=String(r.group||"Unnamed").trim()||"Unnamed",lab=base,i=2;
       while(used[lab]){lab=base+" ("+i+")";i++;}
